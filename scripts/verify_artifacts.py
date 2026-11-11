@@ -30,6 +30,27 @@ def verify(smoke):
     assert failures == 0 and errors == 0, f"JUnit failed: {failures} failures, {errors} errors"
     notice("Unit test evidence", f"{tests} tests; {failures} failures; {errors} errors; {skipped} skipped")
 
+    if smoke:
+        run = Path("build/smoke-run")
+        result = (run / "smoke-result.txt").read_text(encoding="utf-8")
+        lines = result.splitlines()
+        assert lines[0] == "PASSED", result
+        assert len(lines) >= 25, f"Not enough smoke checks: {result}"
+        log = (run / "logs/latest.log").read_text(encoding="utf-8", errors="replace")
+        assert "FANZIK_SMOKE_PASSED" in log, "Client did not confirm smoke test completion"
+        assert "Fanzik event handler failed" not in log, "An event handler failed in the real client"
+        assert "Fanzik operation failed" not in log, "A command/config operation failed in the real client"
+        screenshots = set()
+        for name in ["01-movement.png", "02-combat.png", "03-configs.png", "04-scaled.png"]:
+            image = run / "screenshots" / name
+            data = image.read_bytes()
+            assert len(data) > 1024 and data.startswith(b"\x89PNG\r\n\x1a\n"), f"Invalid screenshot: {name}"
+            screenshots.add(hashlib.sha256(data).hexdigest())
+            width, height = struct.unpack(">II", data[16:24])
+            assert width >= 640 and height >= 360, f"Unexpected screenshot size: {width}x{height}"
+        assert len(screenshots) == 4, "The four UI states did not produce distinct screenshots"
+        notice("Real client evidence", result.strip())
+
     jars = [file for file in Path("build/libs").glob("*.jar") if not file.name.endswith("-sources.jar")]
     assert len(jars) == 1, f"Expected one installable mod, found {jars}"
     jar = jars[0]
@@ -70,21 +91,7 @@ def verify(smoke):
     checksum = hashlib.sha256(jar.read_bytes()).hexdigest()
     notice("Release evidence", f"{jar.name}; {jar.stat().st_size} bytes; SHA-256 {checksum}; {mixin_status}; no test code")
 
-    if smoke:
-        run = Path("build/smoke-run")
-        result = (run / "smoke-result.txt").read_text(encoding="utf-8")
-        lines = result.splitlines()
-        assert lines[0] == "PASSED", result
-        assert len(lines) >= 25, f"Not enough smoke checks: {result}"
-        log = (run / "logs/latest.log").read_text(encoding="utf-8", errors="replace")
-        assert "FANZIK_SMOKE_PASSED" in log, "Client did not confirm smoke test completion"
-        for name in ["01-movement.png", "02-combat.png", "03-configs.png", "04-scaled.png"]:
-            image = run / "screenshots" / name
-            data = image.read_bytes()
-            assert len(data) > 1024 and data.startswith(b"\x89PNG\r\n\x1a\n"), f"Invalid screenshot: {name}"
-            width, height = struct.unpack(">II", data[16:24])
-            assert width >= 640 and height >= 360, f"Unexpected screenshot size: {width}x{height}"
-        notice("Real client evidence", result.strip())
+
 
 
 if __name__ == "__main__":

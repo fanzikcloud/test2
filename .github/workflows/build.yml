@@ -56,12 +56,14 @@ jobs:
               file = Path(name)
               if file.exists():
                   text = file.read_text(errors='replace')[-18000:]
-                  text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-                  print(f'::error title={name}::{text}')
+                  for offset in range(0, len(text), 3000):
+                      part = text[offset:offset + 3000]
+                      part = part.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                      print(f'::error title={name} part {offset // 3000 + 1}::{part}')
           PYCODE
       - name: Upload mod
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: fanzik-client-1.21.1
           path: |
@@ -70,7 +72,7 @@ jobs:
           if-no-files-found: error
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: reports-${{ runner.os }}
           path: |

@@ -2,8 +2,12 @@
   "required": true,
   "package": "dev.fanzik.client.mixin",
   "compatibilityLevel": "JAVA_21",
-  "client": ["KeyboardMixin", "ChatScreenMixin"],
+  "client": [
+    "KeyboardMixin",
+    "ChatScreenMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "refmap": "fanzik.refmap.json"
 }

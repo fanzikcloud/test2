@@ -21,6 +21,11 @@ sourceSets {
 loom {
     splitEnvironmentSourceSets()
 
+    mixin {
+        useLegacyMixinAp = true
+        add sourceSets.client, 'fanzik.refmap.json'
+    }
+
     mods {
         fanzik {
             sourceSet sourceSets.main
