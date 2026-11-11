@@ -34,6 +34,7 @@ jobs:
           sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 libxrandr2 libxinerama1 libxcursor1
       - name: Real client smoke test
         if: runner.os == 'Linux'
+        shell: bash
         env:
           LIBGL_ALWAYS_SOFTWARE: 'true'
           ALSOFT_DRIVERS: 'null'

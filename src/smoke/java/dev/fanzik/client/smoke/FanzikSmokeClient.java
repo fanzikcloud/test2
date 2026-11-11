@@ -95,9 +95,13 @@ public final class FanzikSmokeClient implements ClientModInitializer {
                 }));
                 mc.options.pauseOnLostFocus = false;
                 mc.options.getViewDistance().setValue(2);
-                mc.options.getSimulationDistance().setValue(2);
+                mc.options.getSimulationDistance().setValue(5);
                 mc.options.getGuiScale().setValue(1);
                 mc.options.getMaxFps().setValue(60);
+                mc.options.getSneakToggled().setValue(false);
+                mc.options.getSprintToggled().setValue(false);
+                mc.options.sprintKey.setPressed(false);
+                mc.options.sneakKey.setPressed(false);
                 mc.getWindow().setWindowedSize(1200, 680);
                 mc.onResolutionChanged();
                 GameRules rules = new GameRules();
@@ -123,7 +127,7 @@ public final class FanzikSmokeClient implements ClientModInitializer {
                 if (ticks < 5) {
                     return;
                 }
-                check(mc.player.isSprinting(), "Auto Sprint starts while moving forward");
+                check(mc.player.isSprinting(), "Auto Sprint starts while moving forward: " + inputState(mc));
                 mc.options.sneakKey.setPressed(true);
                 advance(Stage.SNEAK);
             }
@@ -131,7 +135,8 @@ public final class FanzikSmokeClient implements ClientModInitializer {
                 if (ticks < 4) {
                     return;
                 }
-                check(!mc.player.isSprinting(), "Auto Sprint respects sneaking");
+                check(mc.player.input.sneaking, "Keyboard input is actually sneaking: " + inputState(mc));
+                check(!mc.player.isSprinting(), "Auto Sprint respects sneaking: " + inputState(mc));
                 mc.options.sneakKey.setPressed(false);
                 advance(Stage.RESUME);
             }
@@ -242,6 +247,12 @@ public final class FanzikSmokeClient implements ClientModInitializer {
             }
             case DONE -> throw new IllegalStateException("Unexpected completed smoke stage");
         }
+    }
+
+    private String inputState(MinecraftClient mc) {
+        return "sprinting=" + mc.player.isSprinting() + ", sneaking=" + mc.player.isSneaking()
+                + ", inputSneaking=" + mc.player.input.sneaking + ", sneakKey=" + mc.options.sneakKey.isPressed()
+                + ", sprintKey=" + mc.options.sprintKey.isPressed() + ", forward=" + mc.player.input.movementForward;
     }
 
     private void validateAtomicConfigApply() {
