@@ -52,7 +52,7 @@ class ConfigRepositoryTest {
         repository.save("z", ConfigCodecTest.snapshot(true));
         repository.save("a", ConfigCodecTest.snapshot(false));
         Files.writeString(repository.directory().resolve("ignored.tmp"), "x");
-        Files.writeString(repository.directory().resolve("con.json"), "x");
+        Files.writeString(repository.directory().resolve("not valid.json"), "x");
         Files.createDirectory(repository.directory().resolve("directory.json"));
         assertEquals(List.of("a", "z"), repository.list().stream().map(ConfigEntry::name).toList());
         assertTrue(repository.list().getFirst().size() > 0);

@@ -12,18 +12,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Keyboard.class)
 public abstract class KeyboardMixin {
     @Inject(method = "onKey", at = @At("HEAD"), cancellable = true)
-    private void fanzik$menuKey(long window, int key, int scanCode, int action, int modifiers, CallbackInfo info) {
-        FanzikClient client = FanzikClient.instanceOrNull();
-        if (client != null && window == MinecraftClient.getInstance().getWindow().getHandle()
-                && client.handleMenuKey(key, scanCode, action, modifiers)) {
-            info.cancel();
-        }
-    }
-
-    @Inject(method = "onKey", at = @At("TAIL"))
     private void fanzik$onKey(long window, int key, int scanCode, int action, int modifiers, CallbackInfo info) {
         FanzikClient client = FanzikClient.instanceOrNull();
-        if (client != null && window == MinecraftClient.getInstance().getWindow().getHandle()) {
+        if (client == null || window != MinecraftClient.getInstance().getWindow().getHandle()) {
+            return;
+        }
+        if (client.handleMenuKey(key, scanCode, action, modifiers)) {
+            info.cancel();
+        } else {
             client.events().post(new KeyInputEvent(key, scanCode, action, modifiers));
         }
     }

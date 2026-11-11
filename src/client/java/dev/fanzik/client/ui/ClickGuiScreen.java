@@ -281,7 +281,7 @@ public final class ClickGuiScreen extends Screen {
             for (Setting<?> setting : settings) {
                 float rowHeight = rowHeight(setting);
                 if (rowY + rowHeight >= SETTINGS_Y && rowY <= SETTINGS_Y + SETTINGS_H) {
-                    renderSetting(r, setting, rowY, x, y, accent);
+                    renderSetting(r, setting, rowY, x, y, accent, elapsed);
                 }
                 rowY += rowHeight;
             }
@@ -294,12 +294,12 @@ public final class ClickGuiScreen extends Screen {
         UiControls.button(r, I18n.translate("ui.fanzik.reset_settings"), 546, 430, 294, 24, x, y, accent, false, true);
     }
 
-    private void renderSetting(Render2D r, Setting<?> setting, float rowY, double x, double y, int accent) {
+    private void renderSetting(Render2D r, Setting<?> setting, float rowY, double x, double y, int accent, double elapsed) {
         r.text(r.elide(I18n.translate(setting.nameKey()), setting instanceof EnumSetting<?> ? 155 : 238), 547, rowY + 7, 0.9f, Theme.SECONDARY);
         if (setting instanceof BooleanSetting booleanSetting) {
             String animationKey = selected.id() + ":" + setting.id();
             float value = UiControls.smooth(toggleAnimations.getOrDefault(animationKey, booleanSetting.get() ? 1f : 0f),
-                    booleanSetting.get() ? 1 : 0, 0.28f, 0.1);
+                    booleanSetting.get() ? 1 : 0, 14, elapsed);
             toggleAnimations.put(animationKey, value);
             UiControls.toggle(r, 806, rowY + 2, value, accent);
         } else if (setting instanceof EnumSetting<?> enumSetting) {

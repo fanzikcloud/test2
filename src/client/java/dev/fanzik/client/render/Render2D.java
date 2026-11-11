@@ -157,9 +157,13 @@ public final class Render2D implements AutoCloseable {
         if (text.isEmpty() || scale <= 0 || (color >>> 24) == 0 || opacity <= 0.01) {
             return;
         }
+        int fadedColor = Argb.alpha(color, opacity);
+        if ((fadedColor >>> 24) < 4) {
+            return;
+        }
         context.draw();
         try (Scope ignored = transform(x, y, scale)) {
-            context.drawText(font, styled(text), 0, 0, Argb.alpha(color, opacity), false);
+            context.drawText(font, styled(text), 0, 0, fadedColor, false);
             context.draw();
         }
     }

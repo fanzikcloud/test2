@@ -58,7 +58,8 @@ public final class AutoSprint extends Module {
         }
         boolean canSprint = (!pauseInScreens.get() || mc.currentScreen == null)
                 && !player.isSneaking() && !player.hasVehicle() && !player.isFallFlying()
-                && !player.isSpectator() && !player.getAbilities().flying && !player.isSwimming()
+                && !player.isSpectator() && !player.getAbilities().flying
+                && !player.isTouchingWater() && !player.isInLava()
                 && !player.horizontalCollision && !player.hasStatusEffect(StatusEffects.BLINDNESS)
                 && (!pauseUsingItem.get() || !player.isUsingItem())
                 && (player.getHungerManager().getFoodLevel() > 6 || player.getAbilities().allowFlying)
