@@ -51,13 +51,13 @@ jobs:
         if: always()
         shell: bash
         env:
-          BUILD_FAILED: ${{ failure() }}
+          JOB_STATUS: ${{ job.status }}
         run: |
           python - <<'PYCODE'
           import os
           from pathlib import Path
           from base64 import b64encode
-          if os.environ['BUILD_FAILED'] == 'true':
+          if os.environ['JOB_STATUS'] == 'failure':
               for name in ['build-output.log', 'smoke-output.log']:
                   file = Path(name)
                   if file.exists():
