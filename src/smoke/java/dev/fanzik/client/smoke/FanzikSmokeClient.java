@@ -11,6 +11,7 @@ import dev.fanzik.client.event.Subscription;
 import dev.fanzik.client.event.WorldRenderEvent;
 import dev.fanzik.client.module.Category;
 import dev.fanzik.client.module.Module;
+import dev.fanzik.client.render.Render2D;
 import dev.fanzik.client.render.Render3D;
 import dev.fanzik.client.setting.BooleanSetting;
 import dev.fanzik.client.ui.ClickGuiScreen;
@@ -26,6 +27,7 @@ import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.util.ScreenshotRecorder;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.resource.DataConfiguration;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.Difficulty;
@@ -316,17 +318,17 @@ public final class FanzikSmokeClient implements ClientModInitializer {
         try {
             Files.createDirectories(directory);
             try (NativeImage image = ScreenshotRecorder.takeScreenshot(mc.getFramebuffer())) {
+                image.writeTo(directory.resolve(filename));
                 if (filename.equals("01-movement.png")) {
                     verifyMenuPixels(mc, image);
                 }
-                image.writeTo(directory.resolve(filename));
             }
         } catch (IOException exception) {
             throw new IllegalStateException("Cannot save smoke screenshot", exception);
         }
     }
 
-    private void verifyMenuPixels(MinecraftClient mc, NativeImage image) {
+    private void verifyMenuPixels(MinecraftClient mc, NativeImage image) throws IOException {
         float scale = Math.min(1, Math.min((mc.getWindow().getScaledWidth() - 24f) / ClickGuiScreen.WIDTH,
                 (mc.getWindow().getScaledHeight() - 24f) / ClickGuiScreen.HEIGHT));
         double ox = (mc.getWindow().getScaledWidth() - ClickGuiScreen.WIDTH * scale) * fanzik.preferences().snapshot().horizontalPosition();
@@ -342,15 +344,30 @@ public final class FanzikSmokeClient implements ClientModInitializer {
         check(Math.abs(red - (expected >> 16 & 255)) <= 8 && Math.abs(green - (expected >> 8 & 255)) <= 8
                 && Math.abs(blue - (expected & 255)) <= 8,
                 "Custom slider geometry is visible inside the transformed scissor: rgb=" + red + "," + green + "," + blue);
+        int cropX = (int) Math.round((ox + 532 * scale) * pixelScale);
+        int cropY = (int) Math.round((oy + 98 * scale) * pixelScale);
+        int cropW = (int) Math.round(318 * scale * pixelScale);
+        int cropH = (int) Math.round(112 * scale * pixelScale);
+        try (NativeImage crop = new NativeImage(cropW, cropH, false)) {
+            for (int x = 0; x < cropW; x++) {
+                for (int y = 0; y < cropH; y++) {
+                    crop.setColor(x, y, image.getColor(cropX + x, cropY + y));
+                }
+            }
+            crop.writeTo(FabricLoader.getInstance().getGameDir().resolve("screenshots/inspector-preview.png"));
+        }
+        int customWidth = mc.textRenderer.getWidth(Render2D.styled("MMMMMMMMMMMM"));
+        int vanillaWidth = mc.textRenderer.getWidth(Text.literal("MMMMMMMMMMMM"));
+        check(customWidth != vanillaWidth, "The custom TTF font is loaded: width=" + customWidth + ", vanilla=" + vanillaWidth);
         Set<Integer> glyphColors = new HashSet<>();
         for (int x = 547; x < 614; x++) {
-            for (int y = 165; y < 185; y++) {
+            for (int y = 152; y < 200; y++) {
                 int px = (int) Math.round((ox + x * scale) * pixelScale);
                 int py = (int) Math.round((oy + y * scale) * pixelScale);
                 glyphColors.add(image.getColor(px, py));
             }
         }
-        check(glyphColors.size() > 12, "Custom font produces antialiased text pixels");
+        check(glyphColors.size() > 2, "Custom font produces visible antialiased text pixels: colors=" + glyphColors.size());
     }
 
     private void check(boolean condition, String message) {

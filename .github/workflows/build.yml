@@ -53,6 +53,7 @@ jobs:
         run: |
           python - <<'PYCODE'
           from pathlib import Path
+          from base64 import b64encode
           for name in ['build-output.log', 'smoke-output.log']:
               file = Path(name)
               if file.exists():
@@ -61,6 +62,11 @@ jobs:
                       part = text[offset:offset + 3000]
                       part = part.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
                       print(f'::error title={name} part {offset // 3000 + 1}::{part}')
+          image = Path('build/smoke-run/screenshots/inspector-preview.png')
+          if image.exists():
+              encoded = b64encode(image.read_bytes()).decode('ascii')
+              for offset in range(0, len(encoded), 3000):
+                  print(f'::notice title=UI diagnostic {offset // 3000 + 1}::{encoded[offset:offset + 3000]}')
           PYCODE
       - name: Upload mod
         if: runner.os == 'Linux'
