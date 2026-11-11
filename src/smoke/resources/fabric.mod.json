@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "fanzik_smoke",
+  "version": "1.0.0",
+  "name": "Fanzik Client Smoke Tests",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.fanzik.client.smoke.FanzikSmokeClient"]
+  },
+  "depends": {
+    "fanzik": "*",
+    "fabric-api": "*"
+  }
+}

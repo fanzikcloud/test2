@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "fanzik",
+  "version": "${version}",
+  "name": "Fanzik Client",
+  "description": "A modular client with a custom interface, safe local configs and extensible rendering.",
+  "authors": ["fanzikcloud"],
+  "contact": {
+    "sources": "https://github.com/fanzikcloud/test2",
+    "issues": "https://github.com/fanzikcloud/test2/issues"
+  },
+  "license": "MIT",
+  "icon": "assets/fanzik/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.fanzik.client.FanzikClient"]
+  },
+  "mixins": ["fanzik.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.16.14",
+    "minecraft": "1.21.1",
+    "java": ">=21",
+    "fabric-api": ">=0.116.7+1.21.1"
+  }
+}
