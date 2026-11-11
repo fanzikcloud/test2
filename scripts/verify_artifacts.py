@@ -66,11 +66,16 @@ def verify(smoke):
             "dev/fanzik/client/config/ConfigService.class",
             "dev/fanzik/client/ui/ClickGuiScreen.class",
             "assets/fanzik/font/roboto.ttf",
+            "assets/fanzik/font/ui.json",
             "assets/fanzik/lang/ru_ru.json",
             "assets/fanzik/icon.png",
         }
         assert required <= names, f"Missing release files: {required - names}"
         assert not any("/smoke/" in name or name.endswith("Test.class") for name in names), "Test code leaked into the release"
+        font = json.loads(archive.read("assets/fanzik/font/ui.json"))
+        ttf = next(provider for provider in font["providers"] if provider["type"] == "ttf")
+        namespace, path = ttf["file"].split(":", 1)
+        assert f"assets/{namespace}/font/{path}" in names, "TTF provider path does not resolve inside the mod"
         metadata = json.loads(archive.read("fabric.mod.json"))
         assert metadata["id"] == "fanzik" and metadata["environment"] == "client"
         assert metadata["depends"]["minecraft"] == "1.21.1"

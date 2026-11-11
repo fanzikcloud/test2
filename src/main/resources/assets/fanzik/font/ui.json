@@ -2,7 +2,7 @@
   "providers": [
     {
       "type": "ttf",
-      "file": "fanzik:font/roboto.ttf",
+      "file": "fanzik:roboto.ttf",
       "shift": [0.0, 0.0],
       "size": 11.0,
       "oversample": 2.0
