@@ -4,6 +4,7 @@ import com.google.gson.JsonPrimitive;
 import dev.fanzik.client.FanzikClient;
 import dev.fanzik.client.config.ConfigSnapshot;
 import dev.fanzik.client.config.ModuleState;
+import dev.fanzik.client.event.ClientTickEvent;
 import dev.fanzik.client.event.HudRenderEvent;
 import dev.fanzik.client.event.KeyInputEvent;
 import dev.fanzik.client.event.Subscription;
@@ -41,6 +42,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public final class FanzikSmokeClient implements ClientModInitializer {
@@ -127,8 +130,10 @@ public final class FanzikSmokeClient implements ClientModInitializer {
                 if (ticks < 5) {
                     return;
                 }
-                check(mc.player.isSprinting(), "Auto Sprint starts while moving forward: " + inputState(mc));
+                startOwnedSprint(mc, "Auto Sprint explicitly starts a sprint without the sprint key");
                 mc.options.sneakKey.setPressed(true);
+                fanzik.events().post(new ClientTickEvent(mc));
+                check(!mc.player.isSprinting(), "Crouch input releases sprint owned by Auto Sprint: " + inputState(mc));
                 advance(Stage.SNEAK);
             }
             case SNEAK -> {
@@ -136,7 +141,9 @@ public final class FanzikSmokeClient implements ClientModInitializer {
                     return;
                 }
                 check(mc.player.input.sneaking, "Keyboard input is actually sneaking: " + inputState(mc));
-                check(!mc.player.isSprinting(), "Auto Sprint respects sneaking: " + inputState(mc));
+                mc.player.setSprinting(false);
+                fanzik.events().post(new ClientTickEvent(mc));
+                check(!mc.player.isSprinting(), "Auto Sprint never starts while sneaking: " + inputState(mc));
                 mc.options.sneakKey.setPressed(false);
                 advance(Stage.RESUME);
             }
@@ -144,19 +151,27 @@ public final class FanzikSmokeClient implements ClientModInitializer {
                 if (ticks < 4) {
                     return;
                 }
-                check(mc.player.isSprinting(), "Auto Sprint resumes after sneaking");
+                startOwnedSprint(mc, "Auto Sprint resumes after sneaking");
                 mc.player.getHungerManager().setFoodLevel(2);
+                fanzik.events().post(new ClientTickEvent(mc));
+                check(!mc.player.isSprinting(), "Low hunger releases module-owned sprint");
                 advance(Stage.HUNGER);
             }
             case HUNGER -> {
                 if (ticks < 4) {
                     return;
                 }
-                check(!mc.player.isSprinting(), "Auto Sprint respects hunger");
+                mc.player.getHungerManager().setFoodLevel(2);
+                mc.player.setSprinting(false);
+                fanzik.events().post(new ClientTickEvent(mc));
+                check(!mc.player.isSprinting(), "Auto Sprint does not start with low hunger");
                 mc.player.getHungerManager().setFoodLevel(20);
-                mc.options.forwardKey.setPressed(false);
+                startOwnedSprint(mc, "Sprint ownership is established before opening the menu");
                 check(fanzik.handleMenuKey(GLFW.GLFW_KEY_RIGHT_SHIFT, 0, GLFW.GLFW_PRESS, 0), "Right Shift is consumed locally");
                 check(mc.currentScreen instanceof ClickGuiScreen, "Right Shift opens the menu in a world");
+                fanzik.events().post(new ClientTickEvent(mc));
+                check(!mc.player.isSprinting(), "Opening a screen releases module-owned sprint");
+                mc.options.forwardKey.setPressed(false);
                 advance(Stage.MENU);
             }
             case MENU -> {
@@ -249,6 +264,12 @@ public final class FanzikSmokeClient implements ClientModInitializer {
         }
     }
 
+    private void startOwnedSprint(MinecraftClient mc, String message) {
+        mc.player.setSprinting(false);
+        fanzik.events().post(new ClientTickEvent(mc));
+        check(mc.player.isSprinting(), message + ": " + inputState(mc));
+    }
+
     private String inputState(MinecraftClient mc) {
         return "sprinting=" + mc.player.isSprinting() + ", sneaking=" + mc.player.isSneaking()
                 + ", inputSneaking=" + mc.player.input.sneaking + ", sneakKey=" + mc.options.sneakKey.isPressed()
@@ -295,11 +316,41 @@ public final class FanzikSmokeClient implements ClientModInitializer {
         try {
             Files.createDirectories(directory);
             try (NativeImage image = ScreenshotRecorder.takeScreenshot(mc.getFramebuffer())) {
+                if (filename.equals("01-movement.png")) {
+                    verifyMenuPixels(mc, image);
+                }
                 image.writeTo(directory.resolve(filename));
             }
         } catch (IOException exception) {
             throw new IllegalStateException("Cannot save smoke screenshot", exception);
         }
+    }
+
+    private void verifyMenuPixels(MinecraftClient mc, NativeImage image) {
+        float scale = Math.min(1, Math.min((mc.getWindow().getScaledWidth() - 24f) / ClickGuiScreen.WIDTH,
+                (mc.getWindow().getScaledHeight() - 24f) / ClickGuiScreen.HEIGHT));
+        double ox = (mc.getWindow().getScaledWidth() - ClickGuiScreen.WIDTH * scale) * fanzik.preferences().snapshot().horizontalPosition();
+        double oy = (mc.getWindow().getScaledHeight() - ClickGuiScreen.HEIGHT * scale) * fanzik.preferences().snapshot().verticalPosition();
+        double pixelScale = image.getWidth() / (double) mc.getWindow().getScaledWidth();
+        int sliderX = (int) Math.round((ox + 650 * scale) * pixelScale);
+        int sliderY = (int) Math.round((oy + 381 * scale) * pixelScale);
+        int actual = image.getColor(sliderX, sliderY);
+        int expected = fanzik.preferences().snapshot().palette().accent();
+        int red = actual & 255;
+        int green = actual >> 8 & 255;
+        int blue = actual >> 16 & 255;
+        check(Math.abs(red - (expected >> 16 & 255)) <= 8 && Math.abs(green - (expected >> 8 & 255)) <= 8
+                && Math.abs(blue - (expected & 255)) <= 8,
+                "Custom slider geometry is visible inside the transformed scissor: rgb=" + red + "," + green + "," + blue);
+        Set<Integer> glyphColors = new HashSet<>();
+        for (int x = 547; x < 614; x++) {
+            for (int y = 165; y < 185; y++) {
+                int px = (int) Math.round((ox + x * scale) * pixelScale);
+                int py = (int) Math.round((oy + y * scale) * pixelScale);
+                glyphColors.add(image.getColor(px, py));
+            }
+        }
+        check(glyphColors.size() > 12, "Custom font produces antialiased text pixels");
     }
 
     private void check(boolean condition, String message) {
