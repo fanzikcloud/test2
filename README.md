@@ -164,10 +164,10 @@ src/client/java/dev/fanzik/client/
 ├── config/     Асинхронный сервис и настройки интерфейса
 ├── event/      Tick, key, session, HUD, world render
 ├── input/      Имена клавиш
-├── mixin/      Клавиша меню, события клавиатуры, Tab в чате
+├── mixin/      Клавиша меню, события клавиатуры, Tab в чате, доступ к шрифтам
 ├── module/     Жизненный цикл, реестр, транзакционное применение состояния
 ├── module/impl/AutoSprint.java
-├── render/     Render2D, Render3D, RenderState, Icons
+├── render/     Render2D, Render3D, RenderState, Icons, UiFonts
 └── ui/         Меню, контролы, конфиги, уведомления
 ```
 

@@ -1,6 +1,7 @@
 package dev.fanzik.client.ui;
 
 import dev.fanzik.client.render.Render2D;
+import dev.fanzik.client.render.UiFonts;
 import dev.fanzik.client.util.Argb;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.widget.TextFieldWidget;
@@ -36,7 +37,7 @@ public final class UiControls {
     }
 
     public static TextFieldWidget field(MinecraftClient mc, int x, int y, int width, int height, String placeholderKey) {
-        TextFieldWidget field = new TextFieldWidget(mc.textRenderer, x, y, width, height, Text.translatable(placeholderKey));
+        TextFieldWidget field = new TextFieldWidget(UiFonts.renderer(mc), x, y, width, height, Text.translatable(placeholderKey));
         field.setDrawsBackground(false);
         field.setEditableColor(Theme.TEXT);
         field.setUneditableColor(Theme.MUTED);

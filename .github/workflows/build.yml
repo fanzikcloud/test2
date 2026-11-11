@@ -47,22 +47,26 @@ jobs:
           else
             python scripts/verify_artifacts.py
           fi
-      - name: Annotate failures
-        if: failure()
+      - name: Publish diagnostics
+        if: always()
         shell: bash
+        env:
+          BUILD_FAILED: ${{ failure() }}
         run: |
           python - <<'PYCODE'
+          import os
           from pathlib import Path
           from base64 import b64encode
-          for name in ['build-output.log', 'smoke-output.log']:
-              file = Path(name)
-              if file.exists():
-                  text = file.read_text(errors='replace')[-18000:]
-                  for offset in range(0, len(text), 3000):
-                      part = text[offset:offset + 3000]
-                      part = part.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-                      print(f'::error title={name} part {offset // 3000 + 1}::{part}')
-          image = Path('build/smoke-run/screenshots/inspector-preview.png')
+          if os.environ['BUILD_FAILED'] == 'true':
+              for name in ['build-output.log', 'smoke-output.log']:
+                  file = Path(name)
+                  if file.exists():
+                      text = file.read_text(errors='replace')[-18000:]
+                      for offset in range(0, len(text), 3000):
+                          part = text[offset:offset + 3000]
+                          part = part.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                          print(f'::error title={name} part {offset // 3000 + 1}::{part}')
+          image = Path('build/smoke-run/screenshots/menu-preview.png')
           if image.exists():
               encoded = b64encode(image.read_bytes()).decode('ascii')
               for offset in range(0, len(encoded), 3000):

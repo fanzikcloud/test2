@@ -13,6 +13,7 @@ import dev.fanzik.client.module.Category;
 import dev.fanzik.client.module.Module;
 import dev.fanzik.client.render.Render2D;
 import dev.fanzik.client.render.Render3D;
+import dev.fanzik.client.render.UiFonts;
 import dev.fanzik.client.setting.BooleanSetting;
 import dev.fanzik.client.ui.ClickGuiScreen;
 import net.fabricmc.api.ClientModInitializer;
@@ -344,21 +345,23 @@ public final class FanzikSmokeClient implements ClientModInitializer {
         check(Math.abs(red - (expected >> 16 & 255)) <= 8 && Math.abs(green - (expected >> 8 & 255)) <= 8
                 && Math.abs(blue - (expected & 255)) <= 8,
                 "Custom slider geometry is visible inside the transformed scissor: rgb=" + red + "," + green + "," + blue);
-        int cropX = (int) Math.round((ox + 532 * scale) * pixelScale);
-        int cropY = (int) Math.round((oy + 98 * scale) * pixelScale);
-        int cropW = (int) Math.round(318 * scale * pixelScale);
-        int cropH = (int) Math.round(112 * scale * pixelScale);
+        int cropX = (int) Math.round(ox * pixelScale);
+        int cropY = (int) Math.round(oy * pixelScale);
+        int cropW = (int) Math.round(ClickGuiScreen.WIDTH * scale * pixelScale);
+        int cropH = (int) Math.round(ClickGuiScreen.HEIGHT * scale * pixelScale);
         try (NativeImage crop = new NativeImage(cropW, cropH, false)) {
             for (int x = 0; x < cropW; x++) {
                 for (int y = 0; y < cropH; y++) {
                     crop.setColor(x, y, image.getColor(cropX + x, cropY + y));
                 }
             }
-            crop.writeTo(FabricLoader.getInstance().getGameDir().resolve("screenshots/inspector-preview.png"));
+            crop.writeTo(FabricLoader.getInstance().getGameDir().resolve("screenshots/menu-preview.png"));
         }
         int customWidth = mc.textRenderer.getWidth(Render2D.styled("MMMMMMMMMMMM"));
         int vanillaWidth = mc.textRenderer.getWidth(Text.literal("MMMMMMMMMMMM"));
         check(customWidth != vanillaWidth, "The custom TTF font is loaded: width=" + customWidth + ", vanilla=" + vanillaWidth);
+        check(UiFonts.renderer(mc).getWidth("MMMMMMMMMMMM") == customWidth,
+                "Editable fields use the same glyph advances as the rendered UI font");
         Set<Integer> glyphColors = new HashSet<>();
         for (int x = 547; x < 614; x++) {
             for (int y = 152; y < 200; y++) {

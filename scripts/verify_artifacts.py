@@ -63,6 +63,8 @@ def verify(smoke):
             "dev/fanzik/client/module/impl/AutoSprint.class",
             "dev/fanzik/client/render/Render2D.class",
             "dev/fanzik/client/render/Render3D.class",
+            "dev/fanzik/client/render/UiFonts.class",
+            "dev/fanzik/client/mixin/TextRendererAccessor.class",
             "dev/fanzik/client/config/ConfigService.class",
             "dev/fanzik/client/ui/ClickGuiScreen.class",
             "assets/fanzik/font/roboto.ttf",
@@ -81,18 +83,17 @@ def verify(smoke):
         assert metadata["depends"]["minecraft"] == "1.21.1"
         assert metadata["version"] == "1.0.0"
         mixins = json.loads(archive.read("fanzik.mixins.json"))
-        assert set(mixins["client"]) == {"KeyboardMixin", "ChatScreenMixin"}
+        assert set(mixins["client"]) == {"KeyboardMixin", "ChatScreenMixin", "TextRendererAccessor"}
         refmap = mixins.get("refmap")
-        if refmap:
-            mappings = json.loads(archive.read(refmap))
-            mapping_text = json.dumps(mappings)
-            assert "method_1466" in mapping_text and "method_25404" in mapping_text, "Production mixin targets were not remapped"
-            mixin_status = f"refmap: {refmap}"
-        else:
-            keyboard = archive.read("dev/fanzik/client/mixin/KeyboardMixin.class")
-            chat = archive.read("dev/fanzik/client/mixin/ChatScreenMixin.class")
-            assert b"method_1466" in keyboard and b"method_25404" in chat, "Missing production mixin remapping"
-            mixin_status = "inline intermediary remapping"
+        mapping_text = json.dumps(json.loads(archive.read(refmap))) if refmap else ""
+        for mixin, target in {
+            "KeyboardMixin": "method_1466",
+            "ChatScreenMixin": "method_25404",
+            "TextRendererAccessor": "method_27526",
+        }.items():
+            bytecode = archive.read(f"dev/fanzik/client/mixin/{mixin}.class")
+            assert target in mapping_text or target.encode() in bytecode, f"Production mixin target was not remapped: {mixin}"
+        mixin_status = f"refmap: {refmap}" if refmap else "inline intermediary remapping"
     checksum = hashlib.sha256(jar.read_bytes()).hexdigest()
     notice("Release evidence", f"{jar.name}; {jar.stat().st_size} bytes; SHA-256 {checksum}; {mixin_status}; no test code")
 
